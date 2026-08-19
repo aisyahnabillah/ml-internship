@@ -1,0 +1,57 @@
+{
+  "figures": [
+    "../figures/position_ctr_pattern.png"
+  ],
+  "tables": {
+    "signal_summary": [
+      {
+        "position_tier": "top_3",
+        "n": 1450422,
+        "mean_ctr": 0.004756839578417968
+      },
+      {
+        "position_tier": "page_1",
+        "n": 3528478,
+        "mean_ctr": 0.0035755110866314897
+      },
+      {
+        "position_tier": "page_2",
+        "n": 1273231,
+        "mean_ctr": 0.0027402538450167283
+      },
+      {
+        "position_tier": "beyond",
+        "n": 1794058,
+        "mean_ctr": 0.0013713881442193323
+      }
+    ],
+    "results_vs_baseline": [
+      {
+        "method": "Baseline rule (Week 4)",
+        "precision@20": 0.65,
+        "precision@50": 0.64,
+        "validation": "client-grouped holdout"
+      },
+      {
+        "method": "Decision Tree (Week 5)",
+        "precision@20": 0.6,
+        "precision@50": 0.56,
+        "validation": "client-grouped holdout"
+      },
+      {
+        "method": "Random Forest (Week 5)",
+        "precision@20": 0.45,
+        "precision@50": 0.56,
+        "validation": "client-grouped holdout"
+      }
+    ]
+  },
+  "key_numbers": {
+    "n_daily_rows_analyzed": 25087303,
+    "n_position_ctr_sample": 8578172,
+    "position_ctr_correlation": -0.032,
+    "wordcount_impressions_correlation": 0.011,
+    "baseline_precision_at_20": 0.65,
+    "rf_grouped_precision_at_20": 0.45
+  }
+}

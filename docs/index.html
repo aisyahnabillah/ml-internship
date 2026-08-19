@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Which Content Signals Actually Matter? | Aisyah Nabillah</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    max-width: 760px;
+    margin: 40px auto;
+    padding: 0 20px;
+    line-height: 1.65;
+    color: #29272A;
+    background: #FFFDF5;
+  }
+  h1 { font-size: 1.9em; margin-bottom: 4px; }
+  .byline { color: #555; margin-top: 0; }
+  h2 {
+    margin-top: 2.2em;
+    border-bottom: 2px solid #F28FC0;
+    padding-bottom: 6px;
+    color: #29272A;
+  }
+  h3 { color: #D96B9B; margin-top: 1.4em; }
+  .abstract {
+    background: #fff;
+    border-left: 4px solid #D96B9B;
+    padding: 18px 20px;
+    font-style: italic;
+    margin: 20px 0;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 16px 0;
+    font-size: 0.95em;
+  }
+  th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
+  th { background: #29272A; color: #fff; }
+  tr:nth-child(even) { background: #fafaf3; }
+  img { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; margin: 12px 0; }
+  .caption { font-size: 0.9em; color: #666; margin-top: -6px; }
+  code {
+    background: #f0f0e8;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+  ul { padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  footer {
+    margin-top: 3.5em;
+    padding-top: 1.2em;
+    border-top: 1px solid #ddd;
+    font-size: 0.9em;
+    color: #555;
+  }
+  a { color: #D96B9B; }
+  .limits-box {
+    background: #fff;
+    border: 1px solid #F28FC0;
+    border-radius: 6px;
+    padding: 16px 20px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Which Content Signals Actually Matter? A Ranking Signal Analysis on 25 Million Rows of Search Data</h1>
+<p class="byline">Aisyah Nabillah, FlyRank Machine Learning Internship Capstone</p>
+
+<h2>Abstract</h2>
+<div class="abstract">
+This project asks which observable content and search signals are actually associated with
+visibility, clicks, and engagement, rather than assumed to be true. Using 25 million rows from
+FlyRank's search performance warehouse (January to March 2026), three signals were tested with
+bucketed comparisons and correlation coefficients: position vs CTR, content age vs engagement,
+and word count vs impressions. The position CTR relationship was confirmed at scale (n = 8.5
+million), with mean CTR dropping consistently from 0.48% at top 3 positions to 0.14% beyond
+page 2. Word count showed essentially no association with impressions (correlation 0.011), and
+content age showed no consistent pattern with engagement. On a separate, validated comparison,
+a simple, transparent baseline rule outperformed trained Decision Tree and Random Forest
+models on a client grouped holdout, reinforcing that model complexity is not automatically
+rewarded.
+</div>
+
+<h2>Introduction</h2>
+<p>
+A content reviewer at FlyRank works with a limited amount of time and a large, growing
+portfolio of client pages. The question this project asks is simple to state and easy to get
+wrong by assumption: which safe, observable signals are actually worth trusting when deciding
+what to review first, and how strong is each association really, not just whether it "sounds"
+true.
+</p>
+<p>
+Getting this wrong has a real cost. Trusting a weak or coincidental signal wastes review time
+on pages that were never going to improve for that reason. Ignoring a signal that genuinely
+matters means missing a real opportunity. This project extends exploratory checks first run on
+a small starter dataset (avg_position vs ctr, content_age_days vs trend_direction) to the full
+warehouse release, where patterns can be measured at a scale large enough to trust.
+</p>
+
+<h2>Data</h2>
+<p>
+This analysis uses the FlyRank ML Internship warehouse release on Hugging Face
+(<code>FlyRank/internship-warehouse</code>, build
+<code>flyrank_pseudonymized_warehouse_release_v20260703</code>), a gated, pseudonymized dataset
+built specifically for this internship program.
+</p>
+<ul>
+  <li><strong>dim_content</strong>: 519,606 rows, one per pseudonymized content item</li>
+  <li><strong>fact_content_daily_performance</strong>: 25,087,303 rows across January to March
+    2026, one row per content item per client per day</li>
+  <li><strong>Date window</strong>: January 1 to March 31, 2026, a mid panel window chosen
+    deliberately over the dataset's final month, which is reserved as a sealed test window and
+    never used to develop analysis logic</li>
+</ul>
+<p><strong>Excluded from this analysis, and why:</strong></p>
+<ul>
+  <li>Rows where Search Console data was unavailable, these are placeholder rows, not real
+    zero performance observations</li>
+  <li>Deleted content, no longer live and not relevant to a review decision</li>
+  <li>AI referral columns (AI assisted sessions), excluded from the main signal checks since
+    this data is extremely sparse across the release and unreliable as an ordinary signal</li>
+  <li>No client names, domains, URLs, or raw search queries exist anywhere in this release, by
+    design</li>
+</ul>
+
+<h2>Methodology</h2>
+<p>
+This is a signal analysis project, not a classification task. There is no single label being
+predicted here. Instead, three signals were each measured against an outcome using effect
+sizes: correlation coefficients for continuous to continuous comparisons, and bucketed group
+comparisons for a clearer, less linear reading of the same relationship.
+</p>
+<h3>Signals checked</h3>
+<ol>
+  <li><strong>Position vs CTR</strong>: is a page's average search position associated with its
+    click through rate, and how strong is that association at warehouse scale?</li>
+  <li><strong>Content age vs engagement</strong>: do older pages show a different engagement
+    pattern than newer ones?</li>
+  <li><strong>Word count vs impressions</strong>: is there a real association between content
+    depth and search visibility?</li>
+</ol>
+<h3>Supporting evidence: baseline vs model</h3>
+<p>
+A separate, previously validated comparison is carried forward as supporting evidence. A
+transparent baseline rule ("stale but visible": not updated in 180+ days and still receiving
+500+ impressions in the last 90 days) was compared against a trained Decision Tree and Random
+Forest, all evaluated on the same client grouped holdout split. This split matters because
+pages from the same client can share patterns a random split would let leak between train and
+test, making a model look better than it really is.
+</p>
+<h3>Leakage checks</h3>
+<p>
+Client and content identifiers were used only for grouping and joining, never as model
+features. No product decision flags exist in this dataset to leak from. Every signal analyzed
+here is an already observed, historical measurement, not a value derived circularly from
+another signal in the same check.
+</p>
+
+<h2>Results</h2>
+<h3>Signal 1: Position vs CTR, confirmed</h3>
+<img src="../work/figures/position_ctr_pattern.png" alt="Bar chart showing mean CTR dropping from top 3 position tier to beyond page 2">
+<p class="caption">Mean CTR by position tier, n = 8,578,172 rows, January to March 2026.</p>
+<p>
+The linear correlation is weak (r = -0.032), but the bucketed pattern is clear and consistent:
+mean CTR drops from 0.48% at top 3 positions, to 0.36% on page 1, to 0.27% on page 2, to 0.14%
+beyond page 2. This confirms, at a much larger scale, the same pattern first observed on a
+30,000 row starter slice.
+</p>
+
+<h3>Signal 2: Content age vs engagement, no clear pattern</h3>
+<table>
+<tr><th>Content age</th><th>n</th><th>Mean engagement rate</th></tr>
+<tr><td>0 to 90 days</td><td>189,538</td><td>4.24%</td></tr>
+<tr><td>91 to 180 days</td><td>173,463</td><td>5.65%</td></tr>
+<tr><td>181 to 365 days</td><td>172,386</td><td>4.78%</td></tr>
+<tr><td>365+ days</td><td>50,181</td><td>5.23%</td></tr>
+</table>
+<p>
+No consistent direction appears across age buckets. This check covers only 585,849 rows (6.8%
+of the position/CTR sample), since most warehouse rows lack usable analytics tracking data.
+</p>
+
+<h3>Signal 3: Word count vs impressions, no association</h3>
+<p>
+Correlation coefficient: 0.011 (n = 8,578,172), essentially zero. Longer content is not, by
+itself, associated with greater search visibility in this data. This is a genuine negative
+result, reported honestly rather than reframed into a stronger story than the numbers support.
+</p>
+
+<h3>Supporting comparison: baseline rule vs trained models</h3>
+<table>
+<tr><th>Method</th><th>Precision@20</th><th>Precision@50</th><th>Validation</th></tr>
+<tr><td>Baseline rule (stale but visible)</td><td>0.65</td><td>0.64</td><td>Client grouped holdout</td></tr>
+<tr><td>Decision Tree</td><td>0.60</td><td>0.56</td><td>Client grouped holdout</td></tr>
+<tr><td>Random Forest</td><td>0.45</td><td>0.56</td><td>Client grouped holdout</td></tr>
+</table>
+<p>
+The simple, transparent baseline rule outperformed both trained models at precision@20, and
+matched or beat them at precision@50. A random forest trained and evaluated on a plain, random
+(non grouped) split reached 0.950 precision@20, a number that looked excellent but dropped to
+0.450 once genuinely unseen clients were used for testing, evidence that the higher number was
+memorization, not generalization.
+</p>
+
+<h2>Limitations</h2>
+<div class="limits-box">
+<ul>
+  <li>This is observational, cross sectional data across a 3 month window. Nothing here shows
+    that changing a signal causes a change in outcome, only that the two are associated in this
+    data.</li>
+  <li>The content age vs engagement check (Signal 2) is based on a much smaller subset (6.8% of
+    the main sample), since most rows lack usable analytics tracking, and should not be read as
+    a portfolio wide finding.</li>
+  <li>Client history depth is highly uneven across this window, so patterns may not hold evenly
+    across every client.</li>
+  <li>The baseline vs model comparison was validated on a smaller starter dataset slice, not
+    re run at full warehouse scale.</li>
+  <li>No claim is made about Google's ranking algorithm. These are associations observed in
+    FlyRank's own client portfolio data, not evidence about how any search engine works
+    internally.</li>
+  <li>All findings here are decision support. They suggest where a human reviewer might look
+    first. They do not guarantee that acting on any single page will change its performance.</li>
+</ul>
+</div>
+
+<h2>Ranked Recommendations</h2>
+<p>Based on the validated baseline rule and the confirmed position CTR signal above, pages are
+grouped into two review queues:</p>
+<ol>
+  <li>
+    <strong>Review for refresh</strong> (reason: stale but visible). Pages not updated in 180+
+    days that still receive meaningful traffic. This is the best validated signal in this
+    project, with a precision@20 of 0.65 on a client grouped holdout.
+  </li>
+  <li>
+    <strong>Review snippet or metadata</strong> (reason: low CTR for position). Pages whose CTR
+    sits below half their own position tier's average, meaning they underperform direct peers
+    at the same visibility level. This action is further supported by the warehouse scale
+    confirmed position CTR pattern above.
+  </li>
+  <li>
+    <strong>Monitor</strong>. Everything else. Absence of a flag is not evidence a page is
+    fine, only that it does not match either specific pattern above.
+  </li>
+</ol>
+<p>
+Human review is required before acting on any flagged page: confirm the page is not already
+scheduled for consolidation, and confirm a refresh or snippet edit is actually the right lever
+before spending review time on it.
+</p>
+
+<h2>Reproducibility</h2>
+<p>
+All notebooks, feature engineering code, and validation logic behind this paper are available
+in the project repository, under <code>work/notebooks/</code>. Each weekly notebook documents
+one stage of this project, from framing the research question through the final action
+playbook.
+</p>
+<p>
+Repository: <a href="https://github.com/aisyahnabillah/ml-internship">github.com/aisyahnabillah/ml-internship</a>
+</p>
+
+<footer>
+<p>Built on the FlyRank ML Internship dataset, <a href="https://flyrank.ai">flyrank.ai</a></p>
+</footer>
+
+</body>
+</html>
