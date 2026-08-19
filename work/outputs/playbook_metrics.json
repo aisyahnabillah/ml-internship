@@ -1,0 +1,10 @@
+{
+  "baseline_precision_at_20": 0.65,
+  "baseline_precision_at_50": 0.64,
+  "rf_grouped_precision_at_20": 0.45,
+  "rf_grouped_base_rate": 0.559,
+  "n_stale_visible_flagged": 17,
+  "n_low_ctr_flagged_tightened": 9752,
+  "low_ctr_threshold": "ctr < 0.5x tier average ctr",
+  "n_total": 30000
+}
